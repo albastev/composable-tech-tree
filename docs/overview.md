@@ -1,4 +1,4 @@
-# Composable Tech Tree Engine - Project Brief
+# Composable Tech Tree Engine - Overview
 
 ## Vision
 
@@ -205,6 +205,47 @@ The engine explicitly does NOT handle:
 These are application layer concerns. The engine provides the substrate for capability-based technology systems.
 
 ## Implementation Considerations
+
+## Repository Structure (Documentation + Reference Artifacts)
+
+The project is expected to use the following structure for schemas, examples, evaluator references, and docs:
+
+```text
+composable-tech-tree/
+├── schema/
+│   ├── abstract/
+│   │   └── core-schema.json          # Pure abstract model (tree, tech, requirement, capability)
+│   ├── postgres/
+│   │   ├── schema.sql                # PostgreSQL DDL
+│   │   ├── queries.sql               # Common query patterns
+│   │   └── README.md                 # Implementation notes
+│   ├── sqlite/
+│   │   └── schema.sql
+│   ├── mongodb/
+│   │   └── schema.json
+│   └── neo4j/
+│       └── schema.cypher
+├── examples/
+│   ├── simple-stone-to-iron/         # Minimal example (5-10 techs)
+│   ├── fusion-multiple-paths/        # Shows alternative satisfaction
+│   ├── magic-tech-crossover/         # Cross-tree synergy
+│   ├── chemistry-stoichiometry/      # Complex formula requirements
+│   ├── sophistication-scaling/       # Margin/quality demonstration
+│   └── discovery-tinkerer/           # Emergent discovery showcase
+├── evaluators/
+│   ├── reference/                    # Built-in evaluator implementations
+│   │   ├── simple_match.js
+│   │   ├── formula.js
+│   │   ├── any_of.js
+│   │   └── all_of.js
+│   └── examples/                     # Domain-specific evaluators
+│       ├── lawson_criterion.js
+│       └── stoichiometry.js
+└── docs/
+    ├── overview.md
+    ├── getting-started.md
+    └── creating-tech-trees.md
+```
 
 ### Extensibility
 - Requirement evaluators are pluggable - implementers can define custom logic
