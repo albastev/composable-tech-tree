@@ -1,0 +1,373 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/composable-tech-tree/schema/abstract/core-schema.json",
+  "title": "Composable Tech Tree - Abstract Schema",
+  "description": "Abstract data model for capability-based technology trees. Implementation-agnostic.",
+  "version": "1.0.0",
+  
+  "definitions": {
+    "TechnologyTree": {
+      "type": "object",
+      "description": "A collection of related technologies, typically organized by theme or domain",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this technology tree"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of this tree's theme or purpose"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Application-specific metadata (theme, era, tags, etc.)",
+          "additionalProperties": true
+        }
+      }
+    },
+    
+    "Technology": {
+      "type": "object",
+      "description": "A process or knowledge that transforms input capabilities into output capabilities",
+      "required": ["id", "tree_id", "name", "requirements", "outputs"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this technology"
+        },
+        "tree_id": {
+          "type": "string",
+          "description": "ID of the technology tree this belongs to"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this technology does"
+        },
+        "requirements": {
+          "type": "array",
+          "description": "Capabilities needed to utilize this technology",
+          "items": {
+            "$ref": "#/definitions/Requirement"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "description": "Capabilities this technology produces",
+          "items": {
+            "$ref": "#/definitions/CapabilityDefinition"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Application-specific metadata (cost, research_time, flavor_text, etc.)",
+          "additionalProperties": true
+        }
+      }
+    },
+    
+    "Requirement": {
+      "type": "object",
+      "description": "A condition that must be satisfied for a technology to be available. Evaluated by pluggable evaluator functions.",
+      "required": ["evaluator"],
+      "properties": {
+        "evaluator": {
+          "type": "string",
+          "description": "Name/identifier of the evaluator function to use (e.g., 'simple_match', 'formula', 'custom.lawson_criterion')"
+        },
+        "config": {
+          "type": "object",
+          "description": "Evaluator-specific configuration. Contents depend on which evaluator is specified.",
+          "additionalProperties": true,
+          "examples": [
+            {
+              "comment": "Example for 'simple_match' evaluator",
+              "capability_type": "thermal_energy",
+              "min_magnitude": 1000000,
+              "unit": "kelvin"
+            },
+            {
+              "comment": "Example for 'formula' evaluator",
+              "expression": "pressure * temperature >= 1e6",
+              "capability_types": ["plasma_pressure", "plasma_temperature"]
+            },
+            {
+              "comment": "Example for 'any_of' evaluator",
+              "alternatives": [
+                {"capability_type": "extreme_pressure", "min_magnitude": 100},
+                {"capability_type": "ether_compression"}
+              ]
+            }
+          ]
+        }
+      }
+    },
+    
+    "CapabilityDefinition": {
+      "type": "object",
+      "description": "Template defining a capability that a technology produces. This is stored in the engine as part of technology definitions.",
+      "required": ["capability_type"],
+      "properties": {
+        "capability_type": {
+          "type": "string",
+          "description": "Type identifier for this capability (e.g., 'thermal_energy', 'magnetic_field', 'cleanroom_environment')"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Properties of this capability. Can include numeric values, units, or formulas based on input capabilities.",
+          "additionalProperties": true,
+          "examples": [
+            {
+              "magnitude": 5000,
+              "unit": "kelvin"
+            },
+            {
+              "strength": "${input.electrical_current} * 100",
+              "unit": "tesla"
+            }
+          ]
+        }
+      }
+    },
+    
+    "CapabilityInstance": {
+      "type": "object",
+      "description": "Runtime instance of a capability. Not stored by the engine - passed in queries and returned in results.",
+      "required": ["type", "properties"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Type identifier matching a capability_type from CapabilityDefinition"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Actual property values for this instance",
+          "additionalProperties": true,
+          "examples": [
+            {
+              "magnitude": 5000,
+              "unit": "kelvin",
+              "purity": 0.99
+            }
+          ]
+        },
+        "source_tech_id": {
+          "type": "string",
+          "description": "Optional: ID of the technology that produced this capability (for provenance tracking)"
+        }
+      }
+    },
+    
+    "QueryRequest": {
+      "type": "object",
+      "description": "Request to query which technologies are available given current capabilities",
+      "required": ["available_capabilities", "active_tree_ids"],
+      "properties": {
+        "available_capabilities": {
+          "type": "array",
+          "description": "Capability instances currently available",
+          "items": {
+            "$ref": "#/definitions/CapabilityInstance"
+          }
+        },
+        "active_tree_ids": {
+          "type": "array",
+          "description": "IDs of technology trees currently in play",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    
+    "QueryResponse": {
+      "type": "object",
+      "description": "Response indicating which technologies are available and what they can produce",
+      "required": ["available_technologies", "producible_capabilities"],
+      "properties": {
+        "available_technologies": {
+          "type": "array",
+          "description": "Technologies whose requirements are satisfied",
+          "items": {
+            "$ref": "#/definitions/Technology"
+          }
+        },
+        "producible_capabilities": {
+          "type": "array",
+          "description": "New capability instances that available technologies would produce",
+          "items": {
+            "$ref": "#/definitions/CapabilityInstance"
+          }
+        },
+        "requirement_margins": {
+          "type": "object",
+          "description": "Optional: For each technology, how much requirements are exceeded (positive) or missed (negative)",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    
+    "DiscoveryRequest": {
+      "type": "object",
+      "description": "Request to discover what technologies/capabilities emerge from combining specific capabilities",
+      "required": ["input_capabilities", "active_tree_ids"],
+      "properties": {
+        "input_capabilities": {
+          "type": "array",
+          "description": "Capability instances being combined/experimented with",
+          "items": {
+            "$ref": "#/definitions/CapabilityInstance"
+          }
+        },
+        "active_tree_ids": {
+          "type": "array",
+          "description": "IDs of technology trees currently in play",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conditions": {
+          "type": "object",
+          "description": "Optional: Additional conditions for discovery (environment, equipment, researcher skill, etc.)",
+          "additionalProperties": true
+        }
+      }
+    },
+    
+    "DiscoveryResponse": {
+      "type": "object",
+      "description": "Response indicating newly discovered technologies and emergent capabilities",
+      "required": ["discovered_technologies", "emergent_capabilities"],
+      "properties": {
+        "discovered_technologies": {
+          "type": "array",
+          "description": "Technologies that would be revealed by this combination",
+          "items": {
+            "$ref": "#/definitions/Technology"
+          }
+        },
+        "emergent_capabilities": {
+          "type": "array",
+          "description": "Novel capability instances produced by this combination",
+          "items": {
+            "$ref": "#/definitions/CapabilityInstance"
+          }
+        }
+      }
+    },
+    
+    "EvaluatorResult": {
+      "type": "object",
+      "description": "Result from a requirement evaluator function",
+      "required": ["satisfied"],
+      "properties": {
+        "satisfied": {
+          "type": "boolean",
+          "description": "Whether the requirement is satisfied"
+        },
+        "margin": {
+          "type": "number",
+          "description": "Optional: How much requirements are exceeded (positive) or missed (negative). Used for sophistication/reliability calculations."
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional: Diagnostic information about the evaluation",
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+  
+  "examples": [
+    {
+      "comment": "Example technology tree definition",
+      "tree": {
+        "id": "physics_tree",
+        "name": "Physics & Engineering",
+        "description": "Technologies based on physical laws and engineering principles",
+        "metadata": {
+          "era": "industrial_to_atomic",
+          "theme": "hard_science"
+        }
+      }
+    },
+    {
+      "comment": "Example technology definition",
+      "technology": {
+        "id": "fusion_reactor",
+        "tree_id": "physics_tree",
+        "name": "Fusion Reactor",
+        "description": "Controlled nuclear fusion for power generation",
+        "requirements": [
+          {
+            "evaluator": "formula",
+            "config": {
+              "expression": "pressure * temperature >= 1e6",
+              "capability_types": ["plasma_pressure", "plasma_temperature"]
+            }
+          },
+          {
+            "evaluator": "simple_match",
+            "config": {
+              "capability_type": "plasma_containment",
+              "min_magnitude": 1
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "capability_type": "sustained_energy",
+            "properties": {
+              "output_megawatts": 1000,
+              "fuel_type": "deuterium_tritium"
+            }
+          }
+        ],
+        "metadata": {
+          "research_cost": 50000,
+          "build_cost": 100000,
+          "research_time_days": 365
+        }
+      }
+    },
+    {
+      "comment": "Example query request",
+      "query": {
+        "available_capabilities": [
+          {
+            "type": "plasma_pressure",
+            "properties": {
+              "magnitude": 150,
+              "unit": "atmospheres"
+            }
+          },
+          {
+            "type": "plasma_temperature",
+            "properties": {
+              "magnitude": 10000000,
+              "unit": "kelvin"
+            }
+          },
+          {
+            "type": "plasma_containment",
+            "properties": {
+              "method": "magnetic_confinement",
+              "magnitude": 10
+            }
+          }
+        ],
+        "active_tree_ids": ["physics_tree", "magic_tree"]
+      }
+    }
+  ]
+}
