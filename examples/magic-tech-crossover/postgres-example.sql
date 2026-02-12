@@ -467,7 +467,7 @@ SELECT
     r.evaluator,
     r.config
 FROM technologies t
-JOIN requirements r ON t.technology_id = r.id
+JOIN requirements r ON t.id = r.technology_id
 WHERE t.id = 'cryomancy_superconductor';
 
 -- Query 7: Show complete view of fusion_reactor_hybrid
@@ -528,7 +528,7 @@ SELECT DISTINCT
     t.name,
     t.tree_id
 FROM technologies t
-JOIN requirements r ON t.technology_id = r.id
+JOIN requirements r ON t.id = r.technology_id
 WHERE r.config::text LIKE '%pyromancy%'
 ORDER BY t.tree_id, t.name;
 
